@@ -16,6 +16,7 @@
 		013 /* PitchGateModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014 /* PitchGateModelTests.swift */; };
 		015 /* ShakeSprintControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016 /* ShakeSprintControllerTests.swift */; };
 		017 /* UsageTimerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018 /* UsageTimerTests.swift */; };
+		019 /* IntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020 /* IntegrationTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +30,7 @@
 		016 /* ShakeSprintControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeSprintControllerTests.swift; sourceTree = "<group>"; };
 		018 /* UsageTimerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageTimerTests.swift; sourceTree = "<group>"; };
 		019 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		020 /* IntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationTests.swift; sourceTree = "<group>"; };
 		100 /* Scaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Scaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		200 /* ScalerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScalerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -96,6 +98,7 @@
 				014 /* PitchGateModelTests.swift */,
 				016 /* ShakeSprintControllerTests.swift */,
 				018 /* UsageTimerTests.swift */,
+				020 /* IntegrationTests.swift */,
 			);
 			path = ScalerTests;
 			sourceTree = "<group>";
@@ -223,6 +226,7 @@
 				013 /* PitchGateModelTests.swift in Sources */,
 				015 /* ShakeSprintControllerTests.swift in Sources */,
 				017 /* UsageTimerTests.swift in Sources */,
+				019 /* IntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -5,7 +5,13 @@ class UsageTimer: ObservableObject {
     @Published var totalUsageTime: TimeInterval = 0.0
     @Published var isTimerActive: Bool = false
     
-    private let targetUsageTime: TimeInterval = 30 * 60 // 30 minutes
+    // Debug mode: set to true for 5-second timer instead of 30 minutes
+    private let isDebugMode: Bool = true
+    
+    private var targetUsageTime: TimeInterval {
+        return isDebugMode ? 5.0 : (30 * 60) // 5 seconds in debug, 30 minutes in release
+    }
+    
     private var timer: Timer?
     private var startTime: Date?
     private var cancellables = Set<AnyCancellable>()
@@ -23,7 +29,11 @@ class UsageTimer: ObservableObject {
             
             self.totalUsageTime += 1.0
             
-            print("Usage time: \(Int(self.totalUsageTime))s / \(Int(self.targetUsageTime))s")
+            let timeUnit = self.isDebugMode ? "seconds" : "minutes"
+            let targetTime = self.isDebugMode ? Int(self.targetUsageTime) : Int(self.targetUsageTime / 60)
+            let currentTime = self.isDebugMode ? Int(self.totalUsageTime) : Int(self.totalUsageTime / 60)
+            
+            print("Usage time: \(currentTime) / \(targetTime) \(timeUnit)")
             
             // Check if we've reached the target
             if self.totalUsageTime >= self.targetUsageTime {
@@ -41,7 +51,8 @@ class UsageTimer: ObservableObject {
     }
     
     private func triggerShakeSprint() {
-        print("30 minutes of usage reached! Triggering shake sprint.")
+        let timeText = isDebugMode ? "5 seconds" : "30 minutes"
+        print("\(timeText) of usage reached! Triggering shake sprint.")
         NotificationCenter.default.post(name: .shouldStartShakeSprint, object: nil)
     }
     
@@ -59,9 +70,19 @@ class UsageTimer: ObservableObject {
     }
     
     func formattedTime(_ time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        return String(format: "%d:%02d", minutes, seconds)
+        if isDebugMode {
+            return String(format: "%.0fs", time)
+        } else {
+            let minutes = Int(time) / 60
+            let seconds = Int(time) % 60
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
+    
+    // For immediate testing
+    func triggerShakeSprintNow() {
+        print("Manually triggering shake sprint for testing")
+        NotificationCenter.default.post(name: .shouldStartShakeSprint, object: nil)
     }
 }
 

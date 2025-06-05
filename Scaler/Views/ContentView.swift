@@ -5,6 +5,7 @@ struct ContentView: View {
     @EnvironmentObject var shakeSprintController: ShakeSprintController
     @EnvironmentObject var usageTimer: UsageTimer
     @State private var isAppInForeground = true
+    @State private var showDebugControls = true // Set to false to hide debug buttons
     
     var body: some View {
         ZStack {
@@ -29,6 +30,63 @@ struct ContentView: View {
                     }
                     .padding()
                     .background(Color.green.opacity(0.1))
+                    .cornerRadius(12)
+                }
+                
+                // Debug Controls
+                if showDebugControls {
+                    VStack(spacing: 15) {
+                        Text("🐛 Debug Controls")
+                            .font(.headline)
+                            .foregroundColor(.orange)
+                        
+                        HStack(spacing: 15) {
+                            Button("Start Sprint Now") {
+                                usageTimer.triggerShakeSprintNow()
+                            }
+                            .padding(.horizontal, 15)
+                            .padding(.vertical, 8)
+                            .background(Color.red)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            
+                            Button("Mock Shakes") {
+                                // Simulate rapid shaking for testing
+                                for _ in 0..<10 {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 0...0.5)) {
+                                        shakeSprintController.mockShake()
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 15)
+                            .padding(.vertical, 8)
+                            .background(Color.purple)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
+                        
+                        HStack(spacing: 15) {
+                            Button("Reset Timer") {
+                                usageTimer.reset()
+                            }
+                            .padding(.horizontal, 15)
+                            .padding(.vertical, 8)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            
+                            Button("Reset Sprint") {
+                                shakeSprintController.reset()
+                            }
+                            .padding(.horizontal, 15)
+                            .padding(.vertical, 8)
+                            .background(Color.gray)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
+                    }
+                    .padding()
+                    .background(Color.orange.opacity(0.1))
                     .cornerRadius(12)
                 }
                 
@@ -70,6 +128,18 @@ struct ContentView: View {
                             Text("Current: \(pitchGateModel.currentPitch, specifier: "%.1f")°")
                                 .font(.headline)
                                 .foregroundColor(pitchGateModel.isWithinThreshold ? .green : .red)
+                            
+                            // Quick sprint trigger for debugging
+                            if showDebugControls {
+                                Button("🐛 Skip to Sprint (Debug)") {
+                                    usageTimer.triggerShakeSprintNow()
+                                }
+                                .padding()
+                                .background(Color.red.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                                .padding(.top, 20)
+                            }
                         }
                     )
             }
@@ -116,6 +186,22 @@ struct ContentView: View {
                                 .font(.title2)
                                 .fontWeight(.medium)
                                 .foregroundColor(.white.opacity(0.9))
+                            
+                            // Debug button for shake simulation
+                            if showDebugControls {
+                                Button("🐛 Auto Shake (Debug)") {
+                                    // Simulate rapid shaking to complete sprint
+                                    for i in 0..<50 {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) {
+                                            shakeSprintController.mockShake()
+                                        }
+                                    }
+                                }
+                                .padding()
+                                .background(Color.purple.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                            }
                         }
                     )
             }
