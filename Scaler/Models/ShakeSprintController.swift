@@ -1,42 +1,94 @@
 import SwiftUI
 import UIKit
 import Combine
+import CoreMotion
 
 class ShakeSprintController: ObservableObject {
     @Published var sprintProgress: Double = 0.0
     @Published var isSprinting: Bool = false
     @Published var shakesPerSecond: Double = 0.0
+    @Published var isDebugMode: Bool = true
+    @Published var accelerationMagnitude: Double = 0.0
+    @Published var shakeThreshold: Double = 2.5
     
     private var shakeCount: Int = 0
     private var sprintStartTime: Date?
     private let requiredShakesPerSecond: Double = 3.0
-    private let sprintDuration: TimeInterval = 60.0 // 60 seconds
+    private let sprintDuration: TimeInterval = 10.0 // Reduced for testing
     private var sprintTimer: Timer?
     private var shakeTimer: Timer?
     private var recentShakes: [Date] = []
     
+    // Accelerometer-based shake detection
+    private let motionManager = CMMotionManager()
+    private var lastAcceleration: CMAcceleration?
+    private let shakeDetectionInterval: TimeInterval = 1.0 / 30.0 // 30 Hz
+    
     init() {
-        setupShakeDetection()
+        setupAccelerometerShakeDetection()
     }
     
     deinit {
         stopSprint()
+        motionManager.stopAccelerometerUpdates()
     }
     
-    private func setupShakeDetection() {
-        // We'll use a notification-based approach since we can't directly override motionEnded in SwiftUI
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(deviceShaken),
-            name: UIDevice.deviceDidShakeNotification,
-            object: nil
-        )
+    private func setupAccelerometerShakeDetection() {
+        guard motionManager.isAccelerometerAvailable else {
+            print("❌ Accelerometer not available")
+            return
+        }
+        
+        motionManager.accelerometerUpdateInterval = shakeDetectionInterval
+        motionManager.startAccelerometerUpdates(to: .main) { [weak self] (data, error) in
+            guard let self = self, let acceleration = data?.acceleration else { return }
+            
+            // Calculate magnitude of acceleration
+            let magnitude = sqrt(acceleration.x * acceleration.x + 
+                               acceleration.y * acceleration.y + 
+                               acceleration.z * acceleration.z)
+            
+            self.accelerationMagnitude = magnitude
+            
+            // Detect shakes based on sudden changes in acceleration
+            if let lastAccel = self.lastAcceleration {
+                let deltaX = abs(acceleration.x - lastAccel.x)
+                let deltaY = abs(acceleration.y - lastAccel.y)
+                let deltaZ = abs(acceleration.z - lastAccel.z)
+                let totalDelta = deltaX + deltaY + deltaZ
+                
+                if totalDelta > self.shakeThreshold {
+                    self.onShakeDetected()
+                }
+            }
+            
+            self.lastAcceleration = acceleration
+        }
+        
+        print("✅ Accelerometer shake detection started")
+    }
+    
+    private func onShakeDetected() {
+        guard isSprinting else { 
+            if isDebugMode {
+                print("🔍 Shake detected but not sprinting (magnitude: \(accelerationMagnitude))")
+            }
+            return 
+        }
+        
+        let now = Date()
+        recentShakes.append(now)
+        shakeCount += 1
+        
+        if isDebugMode {
+            print("🎯 Valid shake detected! Total: \(shakeCount), Rate: \(shakesPerSecond)")
+        }
     }
     
     func startShakeSprint() {
         guard !isSprinting else { return }
         
-        print("Starting shake sprint - need \(requiredShakesPerSecond) shakes/sec for \(sprintDuration) seconds")
+        print("🚀 Starting shake sprint - need \(requiredShakesPerSecond) shakes/sec for \(sprintDuration) seconds")
         
         isSprinting = true
         sprintProgress = 0.0
@@ -50,7 +102,7 @@ class ShakeSprintController: ObservableObject {
         }
         
         // Timer to calculate shakes per second
-        shakeTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        shakeTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.updateShakesPerSecond()
         }
     }
@@ -64,38 +116,31 @@ class ShakeSprintController: ObservableObject {
         recentShakes.removeAll()
         
         if sprintProgress >= 1.0 {
-            print("Sprint completed successfully!")
+            print("✅ Sprint completed successfully!")
         } else {
-            print("Sprint stopped incomplete - Progress: \(sprintProgress)")
+            print("❌ Sprint stopped incomplete - Progress: \(sprintProgress)")
         }
-    }
-    
-    @objc private func deviceShaken() {
-        guard isSprinting else { return }
-        
-        let now = Date()
-        recentShakes.append(now)
-        shakeCount += 1
-        
-        print("Shake detected! Total: \(shakeCount)")
     }
     
     private func updateSprintProgress() {
         guard let startTime = sprintStartTime else { return }
         
         let elapsed = Date().timeIntervalSince(startTime)
-        let progress = min(elapsed / sprintDuration, 1.0)
+        let timeProgress = min(elapsed / sprintDuration, 1.0)
         
         // Check if we're maintaining the required shake rate
         let currentRate = shakesPerSecond
-        if currentRate < requiredShakesPerSecond {
-            // Reset progress if not meeting shake requirements
-            if elapsed > 2.0 { // Give 2 seconds grace period at start
-                print("Insufficient shake rate: \(currentRate)/sec, need \(requiredShakesPerSecond)/sec")
-                sprintProgress = max(0, sprintProgress - 0.02) // Decrease progress
-            }
+        if currentRate >= requiredShakesPerSecond {
+            // Good shake rate - advance progress
+            sprintProgress = timeProgress
         } else {
-            sprintProgress = progress
+            // Insufficient shake rate - slow down progress
+            if elapsed > 1.0 { // Give 1 second grace period at start
+                sprintProgress = max(0, sprintProgress - 0.01) // Decrease progress slowly
+                if isDebugMode {
+                    print("⚠️ Insufficient shake rate: \(currentRate)/sec, need \(requiredShakesPerSecond)/sec")
+                }
+            }
         }
         
         // Check for completion
@@ -104,7 +149,8 @@ class ShakeSprintController: ObservableObject {
         }
         
         // Auto-stop if taking too long without progress
-        if elapsed > sprintDuration * 2 {
+        if elapsed > sprintDuration * 3 {
+            print("⏰ Sprint timeout")
             stopSprint()
         }
     }
@@ -118,15 +164,21 @@ class ShakeSprintController: ObservableObject {
         shakesPerSecond = Double(recentShakes.count)
     }
     
-    // For testing purposes
+    // Debug functions
     func mockShake() {
-        deviceShaken()
+        onShakeDetected()
     }
     
     func reset() {
         stopSprint()
         sprintProgress = 0.0
         shakeCount = 0
+        shakesPerSecond = 0.0
+    }
+    
+    func adjustShakeThreshold(_ newThreshold: Double) {
+        shakeThreshold = newThreshold
+        print("🔧 Shake threshold adjusted to: \(shakeThreshold)")
     }
 }
 
